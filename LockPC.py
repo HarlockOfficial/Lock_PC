@@ -1,14 +1,27 @@
 import pynput
 from time import sleep
+import datetime
 from threading import Thread
 
 
 class LockPC(Thread):
-    def __init__(self, time):
+    def __init__(self, for_time=None, until_time=None, key_combination=None):
         Thread.__init__(self)
-        self.keyboard_listener = pynput.keyboard.Listener(on_press=self.stop)
-        self.mouse_listener = pynput.mouse.Listener(on_move=self.move, on_scroll=self.scroll, suppress=True)
-        self.time = time
+        if for_time is not None and isinstance(for_time, int):
+            if for_time > 0:
+                self.time = for_time
+            else:
+                raise Exception("Invalid Parameter Set")
+        elif until_time is not None and isinstance(until_time, datetime.datetime):
+            now = datetime.datetime.now()
+            if now < until_time:
+                self.time = (until_time - now).total_seconds()
+            else:
+                raise Exception("Invalid Parameter Set")
+        elif key_combination is not None:
+            pass
+        else:
+            raise Exception("No Parameters Set")
 
     def move(self, x, y):
         if x != 0 or y != 0:
@@ -26,9 +39,13 @@ class LockPC(Thread):
                 pynput.keyboard.Controller().release(key)
 
     def run(self):
-        self.keyboard_listener.start()
-        self.mouse_listener.start()
+        keyboard_listener = pynput.keyboard.Listener(on_press=self.stop)
+        mouse_listener = pynput.mouse.Listener(on_move=self.move, on_scroll=self.scroll, suppress=True)
+        keyboard_listener.start()
+        mouse_listener.start()
+        # --------
         sleep(self.time)
-        self.keyboard_listener.stop()
-        self.mouse_listener.stop()
+        # --------
+        keyboard_listener.stop()
+        mouse_listener.stop()
         exit(0)
